@@ -1,0 +1,7 @@
+1- Créer un range slider avec un canvas et la gestion des cliques
+2- Récupérer les informations des trajectoires
+2- Afficher les trajectoires avec des lignes
+3- Rotation des axes
+4- Associer aux trajectoires une couleur selon altitude
+5- Afficher les trajectoires entre les altitudes du range Slider
+6- Ajouter un système à particules.

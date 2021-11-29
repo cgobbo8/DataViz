@@ -1,0 +1,76 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    font-family: sans-serif;
+}
+
+.panel-sliders {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 350px;
+    width: 400px;
+    background-color: rgba(255, 255, 255, 0.089);
+    border-radius: 0 5px 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    color: #fff;
+}
+
+.range-slider-container {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.range-slider-container canvas {
+    margin: 0 10px;
+}
+
+label {
+    user-select: none
+}
+
+.range-slider-container span {
+    position: absolute;
+    user-select: none;
+}
+
+.range-slider-container span#min-range-value {
+    left: -60px;
+    text-align: right;
+    display: block;
+}
+
+.range-slider-container span#max-range-value {
+    right: -60px;
+    text-align: right;
+}
+
+.manipulation-directe {
+    position: fixed;
+    bottom: 50px;
+    right: 50px;
+}
+
+.manipulation-directe.active {
+    position: fixed;
+    bottom: 50px;
+    right: 50px;
+    background-color: rgb(44, 44, 44);
+    color: #fff;
+}
+
+.radio {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.radio input {
+    margin-left: 10px;
+}
