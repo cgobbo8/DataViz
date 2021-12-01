@@ -3,14 +3,14 @@ body {
     overflow: hidden;
     box-sizing: border-box;
     font-family: sans-serif;
+    background-color: black;
 }
 
 .panel-sliders {
     position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 350px;
-    width: 400px;
+    left: 20px;
+    bottom: 20px;
+    padding: 50px 100px;
     background-color: rgba(255, 255, 255, 0.089);
     border-radius: 0 5px 0 0;
     display: flex;
@@ -19,6 +19,7 @@ body {
     justify-content: center;
     backdrop-filter: blur(10px);
     color: #fff;
+    box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.3);
 }
 
 .range-slider-container {
@@ -73,4 +74,90 @@ label {
 
 .radio input {
     margin-left: 10px;
+}
+
+.panel-infos {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+}
+
+.panel-infos .noms {
+    display: flex;
+    font-size: 2em;
+    color: #fff;
+    margin-right: 20px;
+}
+
+button {
+    border: none;
+    box-shadow: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: .3s ease-in-out;
+    box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.3);
+    background-color: #ae40ee;
+    color: #fff;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+button:hover {
+    transform: scale(0.99);
+}
+
+#modal {
+    background-color: #fff;
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translate(-50%, -250%);
+    padding: 50px;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    backdrop-filter: blur(10px);
+    color: #000;
+    border-radius: 10px;
+    box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.3);
+    user-select: none;
+    transition: .4s ease-in-out;
+    opacity: 0;
+}
+
+#modal.show {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    color: #fff;
+    border-radius: 20px;
+    box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    cursor: pointer;
+    transition: .4s ease-in-out;
+}
+
+.overlay.show {
+    opacity: 1;
+    pointer-events: all;
 }

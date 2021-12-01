@@ -14,17 +14,25 @@ let maxZ;
 let particuleMesh;
 let pointMesh;
 let time = 0;
-let particlesSelected = false;
+let particlesSelected = true;
+let manipulationAllowed = true;
+let materialImage;
+let geometryImage;
+let planeImage;
 const dotSize = 20;
 const maxAltitude = 16500;
 const minAltitude = 0;
+let minValue = minAltitude;
+let maxValue = maxAltitude;
+const particlesSpeed = 200;
 let cpt = 0;
 let n = 5;
 var globalPositions = [];
 let vols = [];
+let controls;
 
-const color1 = new ColorClass(192, 57, 43);
-const color2 = new ColorClass(142, 68, 179);
+const color1 = new ColorClass(255, 0, 0);
+const color2 = new ColorClass(0, 0, 255);
 
 //#endregion
 
@@ -133,6 +141,7 @@ function interpolateColor(c1, c2, val) {
     return { r: r, g: g, b: b };
 }
 
+
 /**
  * convert degrees to radians
  * @param {Number} deg Degrees
@@ -151,12 +160,12 @@ function degToRad(deg) { return deg * Math.PI / 180; }
  */
 function getVolsMatches(vols, altitude1, altitude2) {
     let indices = [];
-    let altitude1Normalized = normalize(altitude1, 16500, 0)
-    let altitude2Normalized = normalize(altitude2, 16500, 0)
+    let altitudeMinimumNormalized = normalize(altitude1, 16500, 0)
+    let altitudeMaximumNormalized = normalize(altitude2, 16500, 0)
     for (let i = 0; i < vols.length - 1; i++) {
         let current = vols[i];
         let next = vols[i + 1];
-        if (current.id1 === next.id1 && (current.normalizedZ >= altitude1Normalized - 0.5 && current.normalizedZ <= altitude2Normalized - 0.5) && (next.normalizedZ >= altitude1Normalized - 0.5 && next.normalizedZ <= altitude2Normalized - 0.5)) {
+        if (current.id1 === next.id1 && (current.normalizedZ >= altitudeMinimumNormalized - 0.5 && current.normalizedZ <= altitudeMaximumNormalized - 0.5) && (next.normalizedZ >= altitudeMinimumNormalized - 0.5 && next.normalizedZ <= altitudeMaximumNormalized - 0.5)) {
             indices.push(i, i + 1);
         }
     }
@@ -182,6 +191,10 @@ function init() {
     camera.position.set(0, 0, 1.);
     camera.lookAt(new Vector3(0, 0, 0));
 
+
+    // add event listener to highlight dragged objects
+
+
     // Create renderer
     renderer = new WebGLRenderer({
         antialias: true
@@ -192,21 +205,39 @@ function init() {
     document.body.appendChild(container);
     container.appendChild(renderer.domElement);
 
+    let image = new Image();
+    image.setAttribute('crossOrigin', 'anonymous');
+
+    image.src = './france.jpg';
+    image.onload = function() {
+        let texture = new Texture(image);
+        texture.needsUpdate = true;
+        materialImage = new MeshBasicMaterial({ map: texture, opacity: 0.1, transparent: true });
+        geometryImage = new PlaneGeometry(1, 1, 1, 1);
+        planeImage = new Mesh(geometryImage, materialImage);
+        planeImage.position.set(0.05, 0.115, -0.5);
+        // zoom the image
+        planeImage.scale.set(0.9, 0.75, 1);
+        scene.add(planeImage);
+    }
+
     // Load data from HTML
     loadTxt();
+
+
 
     // Init sliders
     initSlider(vols);
 
 
 
-    // add scroll event to document to centered mouse zoom in and out the camera 
     document.addEventListener('wheel', function(e) {
         let delta = e.deltaY;
         if (delta > 0) {
             camera.zoom += 0.1;
         } else {
             camera.zoom -= 0.1;
+
         }
         camera.updateProjectionMatrix();
     });
@@ -232,44 +263,49 @@ function init() {
     });
 
     document.addEventListener('mousedown', () => {
-        manipulationOk = true;
+        if (manipulationAllowed) {
+            manipulationOk = true;
+        }
+        if (manipulationDirect && manipulationAllowed) document.body.style.cursor = 'grabbing';
     })
 
     document.addEventListener('mouseup', () => {
         manipulationOk = false;
+        if (manipulationDirect) document.body.style.cursor = 'default';
     })
 
-    // make the camera pan on mouse move
 
-
-    // add mouse move event to document to move the camera
     document.addEventListener('mousemove', function(e) {
         if (manipulationDirect && manipulationOk) {
-            let x = e.clientX;
-            let y = e.clientY;
-            let xNormalized = normalize(x, 0, window.innerWidth);
-            let yNormalized = normalize(y, 0, window.innerHeight);
-            camera.position.x = xNormalized * 0.9;
-            camera.position.y = yNormalized * 0.9;
-            camera.lookAt(new Vector3(0, 0, 0));
+            camera.position.x -= e.movementX / 1000;
+            camera.position.y += e.movementY / 1000;
         }
     });
 
+    const panelSlider = document.querySelector('.panel-sliders');
 
-    // Resize event
+    panelSlider.addEventListener('mouseenter', function(e) {
+        e.stopPropagation();
+        manipulationAllowed = false;
+    });
+
+    panelSlider.addEventListener('mouseout', function(e) {
+        e.stopPropagation();
+        manipulationAllowed = true;
+    });
+
     window.addEventListener('resize', onWindowResize);
 
 
-    // Build threejs object
     let particles = buildThreeJsDataPoints(scene);
 
 
     buildThreeJsData(scene);
 
-    // Animation loop
     animate();
 
-    console.log(vols.length);
+
+
 }
 
 // update project matrix on resize
@@ -295,21 +331,25 @@ function animate() {
             let newPositionX;
             let newPositionY;
             let newPositionZ;
+            // console.log(minValue, maxValue);
 
             // console.log(vols[i].id1);
 
-            if ((time + vols[i].id1) % 100 === 0) {
+            let altitudeMinimumNormalized = normalize(minValue, maxAltitude, minAltitude);
+            let altitudeMaximumNormalized = normalize(maxValue, maxAltitude, minAltitude);
+
+
+            if ((time + vols[i].id1) % particlesSpeed === 0) {
                 newPositionX = Number(vols[i].x);
                 newPositionY = Number(vols[i].y);
                 newPositionZ = Number(vols[i].z);
                 // time = 0;
             } else {
                 if (vols[i + 1].id1 === vols[i].id1) {
-                    newPositionX = (Number(vols[i + 1].x) - Number(vols[i].x)) / 100 * (time % 100) + Number(vols[i].x);
-                    newPositionY = (Number(vols[i + 1].y) - Number(vols[i].y)) / 100 * (time % 100) + Number(vols[i].y);
-                    newPositionZ = (Number(vols[i + 1].z) - Number(vols[i].z)) / 100 * (time % 100) + Number(vols[i].z);
+                    newPositionX = (Number(vols[i + 1].x) - Number(vols[i].x)) / particlesSpeed * ((time + vols[i].id1) % particlesSpeed) + Number(vols[i].x);
+                    newPositionY = (Number(vols[i + 1].y) - Number(vols[i].y)) / particlesSpeed * ((time + vols[i].id1) % particlesSpeed) + Number(vols[i].y);
+                    newPositionZ = (Number(vols[i + 1].z) - Number(vols[i].z)) / particlesSpeed * ((time + vols[i].id1) % particlesSpeed) + Number(vols[i].z);
                 }
-
             }
 
             let normalizedX = (newPositionX - minX) / (maxX - minX) - 0.5;
@@ -318,9 +358,16 @@ function animate() {
 
             // console.log(normalizedX, normalizedY, normalizedZ);
 
-            positions[i * 3] = normalizedX;
-            positions[i * 3 + 1] = normalizedY;
-            positions[i * 3 + 2] = normalizedZ;
+            if (altitudeMinimumNormalized - 0.5 <= normalizedZ && normalizedZ <= altitudeMaximumNormalized - 0.5) {
+                positions[i * 3] = normalizedX;
+                positions[i * 3 + 1] = normalizedY;
+                positions[i * 3 + 2] = normalizedZ;
+            } else {
+                positions[i * 3] = -100;
+                positions[i * 3 + 1] = -100;
+                positions[i * 3 + 2] = -100;
+            }
+
 
 
             // colors[i * 3] = Math.random() - 0.5 // r
@@ -415,8 +462,7 @@ function initSlider() {
     ctx.fillRect(0, 3, canvas.width, canvas.height - 5);
 
     // init some variables
-    let minValue = minAltitude;
-    let maxValue = maxAltitude;
+
     const minText = document.getElementById('min-range-value');
     const maxText = document.getElementById('max-range-value');
     let currentDot;
@@ -441,13 +487,29 @@ function initSlider() {
         let rad = degToRad(e.target.value);
         lineMesh.rotation.x = -rad;
         particuleMesh.rotation.x = -rad;
+        planeImage.position.sub(new Vector3(0, -0.5, -0.5));
+        planeImage.rotation.x = -rad;
+        // planeImage.position.set(0.05, 0.115, -0.5);
+        planeImage.position.set(0.05, (planeImage.rotation.x * 1.23) / Math.PI + 0.115, -0.5);
+        console.log((planeImage.rotation.x * 1.23) / Math.PI + 0.115);
     });
+
+    const inputs = document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('mousedown', () => {
+            manipulationAllowed = false;
+        })
+        input.addEventListener('mouseup', () => {
+            manipulationAllowed = true;
+        })
+    })
 
     // Y slider
     sliderY.addEventListener('input', (e) => {
         let rad = degToRad(e.target.value);
         lineMesh.rotation.y = -rad;
         particuleMesh.rotation.y = -rad;
+        planeImage.rotation.y = -rad;
+        planeImage.position.set(-(planeImage.rotation.y * 0.99 / Math.PI) + 0.05, 0.115, -0.5);
     });
 
     // Desactivate the slider when a click is released outside the canvas
@@ -457,6 +519,7 @@ function initSlider() {
 
     // Activate the slider when a click is inside the canvas
     canvas.addEventListener('mousedown', e => {
+        manipulationAllowed = false;
         if (Poignet1.isIn(e.layerX, e.layerY)) {
             currentDot = [Poignet1];
             isClicked = true;
@@ -505,12 +568,12 @@ function initSlider() {
                 currentDot[0].x = 200 - dotSize;
             }
 
-            redraw(canvas, ctx, [Poignet1, Poignet2], '#96caff');
+            redraw(canvas, ctx, [Poignet1, Poignet2], '#341f97');
 
             minValue = rangeRectangle.x * maxAltitude / canvas.width >= 0 ? rangeRectangle.x * maxAltitude / canvas.width : 0;
             maxValue = (Math.max(Poignet1.x, Poignet2.x) + dotSize) * maxAltitude / canvas.width <= 16500 ? (Math.max(Poignet1.x, Poignet2.x) + dotSize) * maxAltitude / canvas.width : 16500;
-            minText.innerHTML = `${minValue}m`
-            maxText.innerHTML = `${maxValue}m`
+            minText.innerHTML = `${Math.floor(minValue)}m`
+            maxText.innerHTML = `${Math.floor(maxValue)}m`
 
             let newIndices = getVolsMatches(vols, Number(minValue), Number(maxValue), minZ, maxZ);
             geometryLine.setIndex(newIndices);
@@ -551,7 +614,7 @@ function buildThreeJsData(scene) {
     geometryLine = new BufferGeometry();
     let material = new LineBasicMaterial({
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.2,
         vertexColors: true,
         blending: AdditiveBlending,
     });
@@ -569,7 +632,7 @@ function buildThreeJsData(scene) {
         }
 
         positions.push(current.normalizedX, current.normalizedY, current.normalizedZ);
-        let interpolationCurrent = interpolateColor(color1, color2, current.normalizedZ);
+        let interpolationCurrent = interpolateColor(color1, color2, current.normalizedZ + 0.5);
         colors.push(normalize(interpolationCurrent.r, 255, 0), normalize(interpolationCurrent.g, 255, 0), normalize(interpolationCurrent.b, 255, 0));
     }
 
@@ -580,11 +643,11 @@ function buildThreeJsData(scene) {
 
     lineMesh = new LineSegments(geometryLine, material);
 
-    if (particlesSelected) {
-        lineMesh.visible = false;
-    } else {
-        lineMesh.visible = true;
-    }
+    // if (particlesSelected) {
+    //     lineMesh.visible = false;
+    // } else {
+    //     lineMesh.visible = true;
+    // }
 
     scene.add(lineMesh);
 }
@@ -615,7 +678,7 @@ function buildThreeJsDataPoints(scene) {
         let current = vols[i];
 
         positions.push(current.normalizedX, current.normalizedY, current.normalizedZ);
-        let interpolationCurrent = interpolateColor(color1, color2, current.normalizedZ);
+        let interpolationCurrent = interpolateColor(color1, color2, current.normalizedZ + 0.5);
         colors.push(normalize(interpolationCurrent.r, 255, 0), normalize(interpolationCurrent.g, 255, 0), normalize(interpolationCurrent.b, 255, 0));
     }
 
@@ -627,29 +690,69 @@ function buildThreeJsDataPoints(scene) {
 
     scene.add(particuleMesh);
 
-    if (particlesSelected) {
-        particuleMesh.visible = true;
-    } else {
-        particuleMesh.visible = false;
-    }
+    // if (particlesSelected) {
+    //     particuleMesh.visible = true;
+    // } else {
+    //     particuleMesh.visible = false;
+    // }
     globalPositions = [...particuleMesh.geometry.attributes.position.array];
 
 }
 
 
-let radios = document.getElementsByName('radio');
+let checkboxs = document.getElementsByName('checkbox');
 
-// check radio button
-for (let i = 0; i < radios.length; i++) {
-    radios[i].addEventListener('change', e => {
+// check checkbox button
+for (let i = 0; i < checkboxs.length; i++) {
+    checkboxs[i].addEventListener('change', e => {
         if (e.target.value == 'particles') {
-            lineMesh.visible = false;
-            particuleMesh.visible = true;
-            particlesSelected = true;
+            if (e.target.checked) {
+                particlesSelected = true;
+                particuleMesh.visible = true;
+            } else {
+                particlesSelected = false;
+                particuleMesh.visible = false;
+            }
         } else {
-            lineMesh.visible = true;
-            particuleMesh.visible = false;
-            particlesSelected = false;
+            if (e.target.checked) {
+                lineMesh.visible = true;
+            } else {
+                lineMesh.visible = false;
+            }
         }
     })
+}
+
+
+document.getElementById('seeConsignes').addEventListener('click', e => {
+
+    let modal = document.getElementById('modal');
+    let overlay = document.getElementById('overlay');
+    modal.classList.add('show');
+    overlay.classList.add('show');
+
+    overlay.addEventListener('click', e => {
+        modal.classList.remove('show');
+        overlay.classList.remove('show');
+    })
+
+})
+
+
+function rotateAboutPoint(obj, point, axis, theta, pointIsWorld) {
+    pointIsWorld = (pointIsWorld === undefined) ? false : pointIsWorld;
+
+    if (pointIsWorld) {
+        obj.parent.localToWorld(obj.position); // compensate for world coordinate
+    }
+
+    obj.position.sub(point); // remove the offset
+    obj.position.applyAxisAngle(axis, theta); // rotate the POSITION
+    obj.position.add(point); // re-add the offset
+
+    if (pointIsWorld) {
+        obj.parent.worldToLocal(obj.position); // undo world coordinates compensation
+    }
+
+    obj.rotateOnAxis(axis, theta); // rotate the OBJECT
 }
