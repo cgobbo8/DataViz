@@ -208,18 +208,23 @@ function init() {
     let image = new Image();
     image.setAttribute('crossOrigin', 'anonymous');
 
-    image.src = './france.jpg';
-    image.onload = function() {
-        let texture = new Texture(image);
-        texture.needsUpdate = true;
-        materialImage = new MeshBasicMaterial({ map: texture, opacity: 0.1, transparent: true });
-        geometryImage = new PlaneGeometry(1, 1, 1, 1);
-        planeImage = new Mesh(geometryImage, materialImage);
-        planeImage.position.set(0.05, 0.115, -0.5);
-        // zoom the image
-        planeImage.scale.set(0.9, 0.75, 1);
-        scene.add(planeImage);
+    try {
+        image.src = './france.jpg';
+        image.onload = function() {
+            let texture = new Texture(image);
+            texture.needsUpdate = true;
+            materialImage = new MeshBasicMaterial({ map: texture, opacity: 0.1, transparent: true });
+            geometryImage = new PlaneGeometry(1, 1, 1, 1);
+            planeImage = new Mesh(geometryImage, materialImage);
+            planeImage.position.set(0, 0, -0.5);
+            // zoom the image
+            planeImage.scale.set(1.1, 1.1, 1.1);
+            scene.add(planeImage);
+        }
+    } catch (e) {
+        console.log(e);
     }
+
 
     // Load data from HTML
     loadTxt();
@@ -489,9 +494,7 @@ function initSlider() {
         particuleMesh.rotation.x = -rad;
         planeImage.position.sub(new Vector3(0, -0.5, -0.5));
         planeImage.rotation.x = -rad;
-        // planeImage.position.set(0.05, 0.115, -0.5);
-        planeImage.position.set(0.05, (planeImage.rotation.x * 1.23) / Math.PI + 0.115, -0.5);
-        console.log((planeImage.rotation.x * 1.23) / Math.PI + 0.115);
+        planeImage.position.set(-(planeImage.rotation.y / Math.PI), planeImage.rotation.x / Math.PI, -0.5);
     });
 
     const inputs = document.querySelectorAll('input').forEach(input => {
@@ -509,7 +512,7 @@ function initSlider() {
         lineMesh.rotation.y = -rad;
         particuleMesh.rotation.y = -rad;
         planeImage.rotation.y = -rad;
-        planeImage.position.set(-(planeImage.rotation.y * 0.99 / Math.PI) + 0.05, 0.115, -0.5);
+        planeImage.position.set(-(planeImage.rotation.y / Math.PI), planeImage.rotation.x / Math.PI, -0.5);
     });
 
     // Desactivate the slider when a click is released outside the canvas
