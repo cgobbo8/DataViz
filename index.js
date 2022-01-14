@@ -759,3 +759,5 @@ function rotateAboutPoint(obj, point, axis, theta, pointIsWorld) {
 
     obj.rotateOnAxis(axis, theta); // rotate the OBJECT
 }
+
+console.log("test");
